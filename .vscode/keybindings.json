@@ -1,0 +1,7 @@
+[
+	{
+		"key": "ctrl+shift+m",
+		"command": "macros.run",
+		"when": "editorTextFocus && !editorReadonly && !suggestWidgetVisible"
+	}
+]
