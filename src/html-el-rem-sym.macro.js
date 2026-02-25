@@ -106,6 +106,8 @@ async function main() {
 	const doc = editor.document
 
 	// Use VS Code's symbol provider to get document structure
+	// NOTE: This only returns "significant" elements for the outline view.
+	// Elements like <div>, <span>, <path>, <svg> may be filtered out.
 	const symbols = await vscode.commands.executeCommand(
 		'vscode.executeDocumentSymbolProvider',
 		doc.uri
@@ -133,8 +135,15 @@ async function main() {
 		// Find matches
 		const matches = elements.filter(el => matchesSelector(el, selector, doc))
 
+		// Warn if we might have missed elements due to symbol provider limitations
+		const hasGenericSelector = !selector.match(/^[a-zA-Z][a-zA-Z0-9-]*$/) ||
+			['div', 'span', 'path', 'svg', 'li', 'ul', 'ol'].includes(selector.toLowerCase())
+
 		if (matches.length === 0) {
-			vscode.window.showInformationMessage(`No elements found matching "${selector}"`)
+			const msg = hasGenericSelector
+				? `No elements found matching "${selector}". Note: VS Code's symbol provider may filter out generic elements like <div>, <span>. Try the text-based macro instead.`
+				: `No elements found matching "${selector}"`
+			vscode.window.showInformationMessage(msg)
 			return
 		}
 
@@ -149,8 +158,12 @@ async function main() {
 			}
 		})
 
+		const warning = hasGenericSelector && matches.length > 0
+			? ' (some generic elements may have been filtered by VS Code)'
+			: ''
+
 		vscode.window.showInformationMessage(
-			`Removed ${matches.length} element${matches.length === 1 ? '' : 's'} matching "${selector}"`
+			`Removed ${matches.length} element${matches.length === 1 ? '' : 's'} matching "${selector}"${warning}`
 		)
 	} catch (err) {
 		vscode.window.showErrorMessage(`Error: ${err.message}`)
